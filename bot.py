@@ -42,12 +42,11 @@ cur.execute("CREATE TABLE IF NOT EXISTS payments (user_id INTEGER, utr TEXT, dat
 cur.execute("CREATE TABLE IF NOT EXISTS videos (user_id INTEGER, link TEXT, date TEXT)")
 
 # =========================
-# AUTO DELETE OLD DATA (7 DAYS)
+# AUTO DELETE (7 DAYS)
 # =========================
 def clean_old():
     while True:
-        today = datetime.datetime.now()
-        limit = today - datetime.timedelta(days=7)
+        limit = datetime.datetime.now() - datetime.timedelta(days=7)
 
         cur.execute("DELETE FROM payments WHERE date < ?", (str(limit),))
         cur.execute("DELETE FROM videos WHERE date < ?", (str(limit.date()),))
@@ -121,10 +120,12 @@ async def text(update, context):
     uid = update.message.chat_id
     msg = update.message.text
 
+    # CATEGORY
     if msg in ["🔥 10–500 Followers (₹15)", "⚡ 500–1000 Followers (₹50)", "🚀 1000–10000 Followers (₹200)"]:
         await category(update, context)
         return
 
+    # VIDEO BUTTON
     if msg == "📤 Submit Video":
         cur.execute("SELECT approved FROM users WHERE id=?", (uid,))
         d = cur.fetchone()
@@ -139,7 +140,7 @@ async def text(update, context):
         await update.message.reply_text("📸 Send Instagram Reel/Post link")
         return
 
-    # VIDEO
+    # VIDEO SUBMIT
     if context.user_data.get("mode") == "video":
 
         if not ("instagram.com/reel/" in msg or "instagram.com/p/" in msg):
@@ -162,7 +163,7 @@ async def text(update, context):
         await context.bot.send_message(ADMIN_ID, f"📸 Insta Video\nUser: {uid}\nLink: {msg}")
         return
 
-    # UTR
+    # UTR SUBMIT
     if context.user_data.get("mode") == "utr":
         now = str(datetime.datetime.now())
 
@@ -173,6 +174,7 @@ async def text(update, context):
 
         btn = [[InlineKeyboardButton("Approve", callback_data=f"approve_{uid}")]]
         await context.bot.send_message(ADMIN_ID, f"💰 Payment\nUser: {uid}\nUTR: {msg}\nTime: {now}", reply_markup=InlineKeyboardMarkup(btn))
+
         await update.message.reply_text("✅ Payment submitted")
 
 # =========================
@@ -201,6 +203,44 @@ async def approve(update, context):
     await q.edit_message_text("Approved")
 
 # =========================
+# LIST
+# =========================
+async def list_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.chat_id != ADMIN_ID:
+        return
+
+    cur.execute("SELECT * FROM payments")
+    data = cur.fetchall()
+
+    if not data:
+        await update.message.reply_text("No payments")
+        return
+
+    for d in data:
+        btn = [[InlineKeyboardButton("Approve", callback_data=f"approve_{d[0]}")]]
+        await update.message.reply_text(f"{d[0]}\n{d[1]}\n{d[2]}", reply_markup=InlineKeyboardMarkup(btn))
+
+# =========================
+# DATA
+# =========================
+async def data_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.chat_id != ADMIN_ID:
+        return
+
+    cur.execute("SELECT videos.user_id, videos.link, videos.date, users.category FROM videos JOIN users ON videos.user_id = users.id")
+    data = cur.fetchall()
+
+    if not data:
+        await update.message.reply_text("No data")
+        return
+
+    msg = ""
+    for d in data:
+        msg += f"{d[0]} | {d[3]} | {d[2]}\n{d[1]}\n\n"
+
+    await update.message.reply_text(msg)
+
+# =========================
 # DASHBOARD
 # =========================
 async def dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -211,8 +251,8 @@ async def dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     buttons = []
 
     for i in range(7):
-        day = today - datetime.timedelta(days=i)
-        buttons.append([InlineKeyboardButton(str(day), callback_data=f"day_{day}")])
+        d = today - datetime.timedelta(days=i)
+        buttons.append([InlineKeyboardButton(str(d), callback_data=f"day_{d}")])
 
     await update.message.reply_text("📊 Select Day:", reply_markup=InlineKeyboardMarkup(buttons))
 
@@ -222,11 +262,9 @@ async def day_data(update, context):
 
     date = q.data.split("_")[1]
 
-    # payments
     cur.execute("SELECT * FROM payments WHERE date LIKE ?", (f"{date}%",))
     pays = cur.fetchall()
 
-    # videos
     cur.execute("SELECT * FROM videos WHERE date=?", (date,))
     vids = cur.fetchall()
 
@@ -250,7 +288,7 @@ async def participation(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cur.execute("SELECT category, COUNT(*) FROM users GROUP BY category")
     data = cur.fetchall()
 
-    msg = "📊 Today Participation:\n\n"
+    msg = "📊 Participation:\n\n"
     for d in data:
         msg += f"{d[0]} → {d[1]}\n"
 
@@ -262,14 +300,16 @@ async def participation(update: Update, context: ContextTypes.DEFAULT_TYPE):
 app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("dashboard", dashboard))
-app.add_handler(CommandHandler("participation", participation))
-app.add_handler(CallbackQueryHandler(day_data, pattern="day_"))
 app.add_handler(CommandHandler("list", list_cmd))
 app.add_handler(CommandHandler("data", data_cmd))
+app.add_handler(CommandHandler("dashboard", dashboard))
+app.add_handler(CommandHandler("participation", participation))
+
 app.add_handler(CallbackQueryHandler(pay, pattern="pay_"))
 app.add_handler(CallbackQueryHandler(submit_pay, pattern="submit_pay"))
 app.add_handler(CallbackQueryHandler(approve, pattern="approve_"))
+app.add_handler(CallbackQueryHandler(day_data, pattern="day_"))
+
 app.add_handler(MessageHandler(filters.TEXT, text))
 
 app.run_polling()
