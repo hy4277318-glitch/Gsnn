@@ -20,7 +20,7 @@ BOT_TOKEN        = "8695018295:AAGJ69t6ywnZNlgYGmeFtMNABoIBKAE6E-U"
 MONGODB_URI      = "mongodb+srv://himanshuyadavyadav167_db_user:<3QZk2sQZNbTxsH5K>@cluster0.0r5pdj3.mongodb.net/?appName=Cluster0"
 DATABASE_NAME    = "himanshu", "attack_bot"
 API_URL          = "https://kimstress.st"
-API_KEY          = "7d6134479bd735f9c85b0ac129ef5df47 2b11614e6f6eec07a00fcc0240c7ca")
+API_KEY          = "7d6134479bd735f9c85b0ac129ef5df47 2b11614e6f6eec07a00fcc0240c7ca"
 ADMIN_IDS        = [int(x.strip()) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip()]
 CHANNEL_ID       = os.getenv("CHANNEL_ID", "")
 CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME", "")
