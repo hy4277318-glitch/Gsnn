@@ -34,7 +34,7 @@ load_dotenv()
 BOT_TOKEN = "7782412259:AAH9D952JvU_i4ma3goBceMZSoxelSCWvwA"
 MONGODB_URI = "mongodb+srv://himanshuyadavyadav167_db_user:3QZk2sQZNbTxsH5K@cluster0.0r5pdj3.mongodb.net/?appName=Cluster0"
 DATABASE_NAME = os.getenv("himanshu", "attack_bot")
-API_URL = os.getenv("https://kimstress.st")
+API_URL = "https://kimstress.st"
 API_KEY = os.getenv("7d6134479bd735f9c85b0ac129ef5df47 2b11614e6f6eec07a00fcc0240c7ca")
 ADMIN_IDS = [int(id.strip()) for id in os.getenv("ADMIN_IDS", "6676943475").split(",")]
 
